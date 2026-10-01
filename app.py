@@ -33,8 +33,8 @@ class ProdutoBanco(Base):
 
 
 app = FastAPI(
-    title="API Dia a Dia",
-    description="API CRUD de produtos com SmartCheckout",
+    title="SmartCheckout API",
+    description="API de validação e gerenciamento de produtos do SmartCheckout",
     version="1.4.0"
 )
 
@@ -245,7 +245,7 @@ Base.metadata.create_all(bind=engine)
 @app.get("/")
 def inicio():
     return {
-        "mensagem": "API do Dia a Dia funcionando!"
+        "mensagem": "SmartCheckout API funcionando!"
     }
 
 
