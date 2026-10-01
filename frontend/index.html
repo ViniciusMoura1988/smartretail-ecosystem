@@ -82,6 +82,62 @@
             background: #dddddd;
         }
 
+        .como-testar {
+            margin-top: 35px;
+            padding: 25px;
+            background: #0a0a0a;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .como-testar h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .instrucao {
+            color: #bbbbbb;
+            font-size: 16px;
+            line-height: 1.5;
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .teste-grupo {
+            margin-bottom: 20px;
+        }
+
+        .teste-grupo:last-child {
+            margin-bottom: 0;
+        }
+
+        .teste-grupo h3 {
+            margin: 0 0 8px 0;
+            font-size: 17px;
+        }
+
+        .teste-grupo p {
+            margin: 6px 0;
+            color: #aaaaaa;
+            font-size: 14px;
+        }
+
+        .codigo-teste {
+            display: block;
+            padding: 10px 12px;
+            margin: 6px 0;
+            background: #151515;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            color: #ffffff;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 15px;
+            word-break: break-all;
+        }
+
         .resultado {
             margin-top: 30px;
             padding: 25px;
@@ -152,11 +208,58 @@
             VERIFICAR
         </button>
 
+        <div class="como-testar">
+
+            <h2>COMO TESTAR</h2>
+
+            <div class="instrucao">
+                Digite um dos exemplos abaixo no campo acima e clique em
+                <strong>VERIFICAR</strong> para visualizar o resultado.
+            </div>
+
+            <div class="teste-grupo">
+
+                <h3>Produto cadastrado — deve permitir</h3>
+
+                <span class="codigo-teste">7894900011517</span>
+                <span class="codigo-teste">96385074</span>
+                <span class="codigo-teste">036000291452</span>
+                <span class="codigo-teste">10614141000415</span>
+
+            </div>
+
+            <div class="teste-grupo">
+
+                <h3>Produto não cadastrado — deve identificar</h3>
+
+                <span class="codigo-teste">7894900011524</span>
+
+            </div>
+
+            <div class="teste-grupo">
+
+                <h3>GTIN inválido — deve bloquear</h3>
+
+                <span class="codigo-teste">7894900011518</span>
+
+            </div>
+
+            <div class="teste-grupo">
+
+                <h3>URL / QR Code — deve bloquear</h3>
+
+                <span class="codigo-teste">https://exemplo.com</span>
+
+            </div>
+
+        </div>
+
         <div id="resultado" class="resultado"></div>
 
     </div>
 
     <script>
+
         function identificarTipo(leitura) {
 
             const valor = leitura.trim();
@@ -177,6 +280,7 @@
 
 
         function prepararNovaLeitura() {
+
             const campo = document.getElementById("codigo");
 
             campo.focus();
@@ -206,6 +310,7 @@
                 return;
             }
 
+
             const tipo = identificarTipo(leitura);
 
             resultado.className = "resultado informacao";
@@ -216,18 +321,24 @@
                 <p>Aguarde a resposta da API.</p>
             `;
 
+
             try {
 
                 const resposta = await fetch("/smartcheckout/ler", {
+
                     method: "POST",
+
                     headers: {
                         "Content-Type": "application/json"
                     },
+
                     body: JSON.stringify({
                         leitura: leitura,
                         tipo: tipo
                     })
+
                 });
+
 
                 const dados = await resposta.json();
 
@@ -366,18 +477,22 @@
         }
 
 
-        document.getElementById("codigo").addEventListener("keydown", function(event) {
+        document.getElementById("codigo").addEventListener(
+            "keydown",
+            function(event) {
 
-            if (event.key === "Enter") {
+                if (event.key === "Enter") {
 
-                event.preventDefault();
+                    event.preventDefault();
 
-                verificarProduto();
+                    verificarProduto();
+                }
             }
-        });
+        );
 
 
         prepararNovaLeitura();
+
     </script>
 
 </body>
