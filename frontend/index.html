@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCheckout</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkout {
+            width: 90%;
+            max-width: 750px;
+            background: #111111;
+            border: 1px solid #333333;
+            border-radius: 12px;
+            padding: 45px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 40px;
+            letter-spacing: 2px;
+        }
+
+        .descricao {
+            margin-top: 10px;
+            margin-bottom: 35px;
+            color: #aaaaaa;
+            font-size: 18px;
+        }
+
+        .campo {
+            width: 100%;
+            padding: 18px;
+            font-size: 22px;
+            border: 2px solid #444444;
+            border-radius: 8px;
+            background: #050505;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .campo:focus {
+            border-color: #777777;
+        }
+
+        .campo::placeholder {
+            color: #777777;
+        }
+
+        .botao {
+            width: 100%;
+            padding: 18px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #000000;
+            cursor: pointer;
+        }
+
+        .botao:hover {
+            background: #dddddd;
+        }
+
+        .resultado {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .resultado h2 {
+            margin-top: 0;
+            font-size: 26px;
+        }
+
+        .resultado p {
+            font-size: 18px;
+        }
+
+        .produto {
+            font-size: 24px !important;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .preco {
+            font-size: 30px !important;
+            font-weight: bold;
+        }
+
+        .permitido {
+            background: #071407;
+            border: 2px solid #00ff44;
+        }
+
+        .bloqueado {
+            background: #160000;
+            border: 2px solid #ff0000;
+        }
+
+        .informacao {
+            background: #171300;
+            border: 2px solid #ffcc00;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="checkout">
+
+        <h1>SMARTCHECKOUT</h1>
+
+        <div class="descricao">
+            Sistema de validação de produtos
+        </div>
+
+        <input
+            type="text"
+            id="codigo"
+            class="campo"
+            placeholder="Digite ou leia um código"
+            autocomplete="off"
+            autofocus
+        >
+
+        <button
+            class="botao"
+            onclick="verificarProduto()"
+        >
+            VERIFICAR
+        </button>
+
+        <div id="resultado" class="resultado"></div>
+
+    </div>
+
+    <script>
+        function identificarTipo(leitura) {
+
+            const valor = leitura.trim();
+
+            if (
+                valor.toLowerCase().startsWith("http://") ||
+                valor.toLowerCase().startsWith("https://")
+            ) {
+                return "qrcode";
+            }
+
+            if (/^\d+$/.test(valor)) {
+                return "codigo_barras";
+            }
+
+            return "desconhecido";
+        }
+
+
+        function prepararNovaLeitura() {
+            const campo = document.getElementById("codigo");
+
+            campo.focus();
+            campo.select();
+        }
+
+
+        async function verificarProduto() {
+
+            const campo = document.getElementById("codigo");
+            const resultado = document.getElementById("resultado");
+
+            const leitura = campo.value.trim();
+
+            if (!leitura) {
+
+                resultado.className = "resultado informacao";
+                resultado.style.display = "block";
+
+                resultado.innerHTML = `
+                    <h2>NENHUMA LEITURA</h2>
+                    <p>Digite ou leia um código para continuar.</p>
+                `;
+
+                prepararNovaLeitura();
+
+                return;
+            }
+
+            const tipo = identificarTipo(leitura);
+
+            resultado.className = "resultado informacao";
+            resultado.style.display = "block";
+
+            resultado.innerHTML = `
+                <h2>CONSULTANDO...</h2>
+                <p>Aguarde a resposta da API.</p>
+            `;
+
+            try {
+
+                const resposta = await fetch("/smartcheckout/ler", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        leitura: leitura,
+                        tipo: tipo
+                    })
+                });
+
+                const dados = await resposta.json();
+
+
+                if (resposta.status !== 200) {
+
+                    resultado.className = "resultado bloqueado";
+                    resultado.style.display = "block";
+
+                    resultado.innerHTML = `
+                        <h2>ERRO NA LEITURA</h2>
+                        <p>${dados.detail || "A API recusou a solicitação."}</p>
+                    `;
+
+                    prepararNovaLeitura();
+
+                    return;
+                }
+
+
+                if (dados.resultado === "permitir") {
+
+                    resultado.className = "resultado permitido";
+                    resultado.style.display = "block";
+
+                    resultado.innerHTML = `
+                        <h2>LEITURA PERMITIDA</h2>
+
+                        <p class="produto">
+                            ${dados.produto.nome}
+                        </p>
+
+                        <p>
+                            Código: ${dados.produto.codigo}
+                        </p>
+
+                        <p class="preco">
+                            R$ ${dados.produto.preco.toFixed(2).replace(".", ",")}
+                        </p>
+                    `;
+
+                    prepararNovaLeitura();
+
+                    return;
+                }
+
+
+                if (dados.resultado === "nao_cadastrado") {
+
+                    resultado.className = "resultado bloqueado";
+                    resultado.style.display = "block";
+
+                    resultado.innerHTML = `
+                        <h2>PRODUTO NÃO CADASTRADO</h2>
+
+                        <p>
+                            O código foi identificado como GTIN válido,
+                            mas o produto não está cadastrado no banco.
+                        </p>
+
+                        <p class="produto">
+                            ${leitura}
+                        </p>
+                    `;
+
+                    prepararNovaLeitura();
+
+                    return;
+                }
+
+
+                if (dados.codigo === "qrcode_bloqueado") {
+
+                    resultado.className = "resultado bloqueado";
+                    resultado.style.display = "block";
+
+                    resultado.innerHTML = `
+                        <h2>LEITURA BLOQUEADA</h2>
+
+                        <p>QR Code ou URL não permitido.</p>
+                    `;
+
+                    prepararNovaLeitura();
+
+                    return;
+                }
+
+
+                if (dados.codigo === "gtin_invalido") {
+
+                    resultado.className = "resultado bloqueado";
+                    resultado.style.display = "block";
+
+                    resultado.innerHTML = `
+                        <h2>GTIN INVÁLIDO</h2>
+
+                        <p>
+                            O código numérico não possui um GTIN válido.
+                        </p>
+                    `;
+
+                    prepararNovaLeitura();
+
+                    return;
+                }
+
+
+                resultado.className = "resultado informacao";
+                resultado.style.display = "block";
+
+                resultado.innerHTML = `
+                    <h2>LEITURA IGNORADA</h2>
+
+                    <p>
+                        ${dados.mensagem || "A leitura foi ignorada pela API."}
+                    </p>
+                `;
+
+                prepararNovaLeitura();
+
+            } catch (erro) {
+
+                resultado.className = "resultado bloqueado";
+                resultado.style.display = "block";
+
+                resultado.innerHTML = `
+                    <h2>ERRO DE CONEXÃO</h2>
+
+                    <p>
+                        Não foi possível conectar com a API.
+                    </p>
+                `;
+
+                prepararNovaLeitura();
+            }
+        }
+
+
+        document.getElementById("codigo").addEventListener("keydown", function(event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                verificarProduto();
+            }
+        });
+
+
+        prepararNovaLeitura();
+    </script>
+
+</body>
+</html>
